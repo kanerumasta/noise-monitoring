@@ -321,7 +321,8 @@ export default function HistoryPage() {
     // Sort the filtered data
     filtered = sortData(filtered);
     setFilteredData(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
+    
   }, [selectedTab, selectedDate, sortField, sortOrder]);
 
   // Handle sort change

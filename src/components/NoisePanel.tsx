@@ -198,8 +198,8 @@ export default function NoisePanel({ nodes }: NoisePanelProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        node.status === 'active' 
-                          ? 'bg-green-100 text-green-800' 
+                        node.status === 'active'
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
                         {node.status}
@@ -224,13 +224,13 @@ export default function NoisePanel({ nodes }: NoisePanelProps) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {NOISE_CATEGORIES.map((category, index) => (
-                <div 
+                <div
                   key={category.label}
                   className={`
                     relative overflow-hidden rounded-lg bg-white
                     transition-all duration-200 ease-in-out
                     hover:shadow-md
-                    ${index === 0 ? 'border-green-200' : 
+                    ${index === 0 ? 'border-green-200' :
                       index === 1 ? 'border-yellow-200' :
                       index === 2 ? 'border-orange-200' : 'border-red-200'}
                     border
@@ -263,4 +263,4 @@ export default function NoisePanel({ nodes }: NoisePanelProps) {
       </div>
     </div>
   )
-} 
+}
