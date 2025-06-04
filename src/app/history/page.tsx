@@ -1,6 +1,8 @@
 "use client";
-
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useState, useEffect } from "react";
+
 import {
   format,
   subDays,
@@ -22,6 +24,7 @@ import {
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { NOISE_CATEGORIES } from "@/constants";
+import { TNode } from '@/schemas/node_schemas';
 
 // Node tabs configuration
 const nodeTabs = [
@@ -36,6 +39,7 @@ const nodeTabs = [
   { id: "9", label: "San Miguel 3" },
   { id: "all", label: "All Nodes" },
 ];
+
 
 // Add type definitions
 interface NoiseRecord {
@@ -265,6 +269,34 @@ export default function HistoryPage() {
   const [sortField, setSortField] = useState<SortField>("timeRecorded");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const itemsPerPage = 10;
+
+  const [nodeData, setNodeData] = useState<TNode | null>(null);
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // Get node_1 data
+      const nodeRef = doc(db, 'nodes', 'node_1');
+      const nodeSnap = await getDoc(nodeRef);
+      const node = nodeSnap.exists() ? nodeSnap.data() : null;
+    //   setNodeData(node);
+    console.log(node)
+
+      // Get events under node_1
+      const eventsRef = collection(db, 'nodes/node_1/events');
+      const eventsSnap = await getDocs(eventsRef);
+
+      const eventsList = eventsSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+    //   setEvents(eventsList);
+    console.log(eventsList[278])
+    };
+
+    fetchData();
+  }, []);
 
   // Generate date buttons for quick selection
   const dateButtons: DateButton[] = [
