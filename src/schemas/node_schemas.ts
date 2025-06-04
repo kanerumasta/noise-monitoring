@@ -1,6 +1,7 @@
-import { Timestamp } from "firebase/firestore";
+import { QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 
 export type TNode = {
+    id:string
     coords : {
         lat:number,
         lng:number
@@ -16,3 +17,5 @@ export type TNoiseRecord = {
     timestamp: Timestamp;
     type: "sustained" | "shortburst";
 }
+
+export type TNoiseRecordWithNode = TNoiseRecord & { node: TNode };

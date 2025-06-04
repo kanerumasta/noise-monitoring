@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import dynamic from 'next/dynamic'
 import { ChartBarIcon } from '@heroicons/react/24/outline'
 
+
 // Dynamically import the Map component to avoid SSR issues
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -38,7 +39,7 @@ const NOISE_CATEGORIES = [
     max: 70,
     intervals: 0
   },
-  { 
+  {
     label: 'Tier 1',
     range: '71-85 dB (15+ mins)',
     color: '#EAB308', // Yellow
@@ -48,7 +49,7 @@ const NOISE_CATEGORIES = [
     max: 85,
     intervals: 1
   },
-  { 
+  {
     label: 'Tier 2',
     range: '86-100 dB (15+ mins)',
     color: '#F97316', // Orange
@@ -58,7 +59,7 @@ const NOISE_CATEGORIES = [
     max: 100,
     intervals: 3
   },
-  { 
+  {
     label: 'Tier 3',
     range: '>101 dB (Spike)',
     color: '#EF4444', // Red
@@ -194,14 +195,14 @@ const NoiseCategory = ({ category }: { category: typeof NOISE_CATEGORIES[0] }) =
   </span>
 )
 
-const NodeCard = ({ 
-  node, 
-  isSelected, 
-  onClick 
-}: { 
+const NodeCard = ({
+  node,
+  isSelected,
+  onClick
+}: {
   node: Node
   isSelected: boolean
-  onClick: () => void 
+  onClick: () => void
 }) => {
   const getNodeCategory = (noisePeak: number, intervals: number) => {
     if (noisePeak > 101) {
@@ -233,10 +234,10 @@ const NodeCard = ({
 
   const category = getNodeCategory(node.noisePeak, node.consecutiveIntervals)
   const timestamp = new Date(node.timestamp)
-  const timeString = timestamp.toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
-    minute: '2-digit', 
-    hour12: true 
+  const timeString = timestamp.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
   })
 
   return (
@@ -246,8 +247,8 @@ const NodeCard = ({
     >
       <div
         className={`relative p-5 rounded-xl transition-all duration-200 ${
-          isSelected 
-            ? 'bg-blue-50 border-blue-200' 
+          isSelected
+            ? 'bg-blue-50 border-blue-200'
             : 'bg-white hover:bg-gray-50'
         } border shadow-sm hover:shadow-md`}
         style={{
@@ -288,10 +289,10 @@ const NodeCard = ({
         </div>
 
         {/* Active Indicator */}
-        <div 
+        <div
           className="absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full h-12"
-          style={{ 
-            backgroundColor: node.noisePeak > 101 ? '#EF4444' : 
+          style={{
+            backgroundColor: node.noisePeak > 101 ? '#EF4444' :
                            node.noisePeak >= 86 && node.consecutiveIntervals >= 3 ? '#F97316' :
                            node.noisePeak >= 71 && node.consecutiveIntervals >= 3 ? '#EAB308' :
                            '#22C55E'
@@ -318,7 +319,7 @@ export default function Dashboard() {
       )
       const maxDuration = Math.max(...locationNodes.map(n => n.consecutiveIntervals))
       const centerNode = locationNodes[Math.floor(locationNodes.length / 2)]
-      
+
       acc[node.location] = {
         id: parseInt(`${Date.now()}${Math.floor(Math.random() * 1000)}`),
         name: `${node.location} Average`,
@@ -356,6 +357,7 @@ export default function Dashboard() {
       setMapCenter([node.lat, node.lng])
     }
   }
+
 
   return (
     <div className="flex h-full">
@@ -401,7 +403,7 @@ export default function Dashboard() {
         {/* Node List */}
         <div className="flex-1 overflow-auto px-6 py-4">
           <div className="space-y-4">
-            {showAverages ? 
+            {showAverages ?
               Object.values(locationAverages)
                 .filter(node => !selectedLocation || node.location === selectedLocation)
                 .map(node => (
@@ -436,13 +438,13 @@ export default function Dashboard() {
               setSelectedNode(null) // Clear selection when toggling
             }}
             className={`
-              flex items-center space-x-2 px-4 py-2.5 
-              ${showAverages 
-                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              flex items-center space-x-2 px-4 py-2.5
+              ${showAverages
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
-              } 
-              rounded-lg shadow-lg hover:shadow-xl 
-              transition-all duration-200 
+              }
+              rounded-lg shadow-lg hover:shadow-xl
+              transition-all duration-200
               text-sm font-semibold
               border border-transparent
               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
@@ -471,4 +473,4 @@ export default function Dashboard() {
       </div>
     </div>
   )
-} 
+}

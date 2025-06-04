@@ -1,143 +1,3 @@
-"use client";
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useState, useEffect, useMemo } from "react";
-
-import {
-  format,
-  subDays,
-  addMinutes,
-  parseISO,
-  isWithinInterval,
-  startOfDay,
-  endOfDay,
-} from "date-fns";
-import {
-  ArrowDownTrayIcon,
-  DocumentArrowDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-  CalendarIcon,
-  ClockIcon,
-  ChartBarIcon,
-} from "@heroicons/react/24/outline";
-import { NOISE_CATEGORIES } from "@/constants";
-import { TNode } from '@/schemas/node_schemas';
-import { useQuery } from '@tanstack/react-query';
-import { fetchEvents } from '@/lib/queries/fetchEvents';
-
-
-
-
-// Add sorting type
-type SortField = "timeRecorded" | "noiseAlertLevel";
-type SortOrder = "asc" | "desc";
-
-
-
-
-// Function to determine noise level color coding based on tier system
-const getNoiseLevelStyle = (noiseLevel: string) => {
-  switch (noiseLevel) {
-    case "Tier 3":
-      return { bg: "bg-red-100 border border-red-800", text: "text-red-800" };
-    case "Tier 2":
-      return {
-        bg: "bg-orange-100 border border-orange-800",
-        text: "text-orange-800",
-      };
-    case "Tier 1":
-      return {
-        bg: "bg-yellow-100 border border-yellow-800",
-        text: "text-yellow-800",
-      };
-    default:
-      return {
-        bg: "bg-green-100 border border-green-800",
-        text: "text-green-800",
-      };
-  }
-};
-
-
-
-export default function HistoryPage() {
-  const [selectedNode, setSelectedNode] = useState("node_1");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [sortField, setSortField] = useState<SortField>("timeRecorded");
-
-
-    const [nodes, setNodes] = useState<TNode[]>([])
-  const [nodeData, setNodeData] = useState<TNode | null>(null);
-    const {
-        data: events,
-        isLoading,
-        error,
-    } = useQuery({
-        queryKey: ["events", selectedNode],
-        queryFn: () => fetchEvents(selectedNode),
-    });
-
-    console.log(events)
-
-  const [tierFilter, setTierFilter] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<"timestamp" | "soundLevel" | "duration">("timestamp");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15)
-
-  // Filtered and sorted data
-  const filteredData = useMemo(() => {
-    if (!events) return [];
-
-    let filtered = [...events];
-
-    if (tierFilter) {
-      filtered = filtered.filter((e) => e.tier === tierFilter);
-    }
-
-    if (typeFilter) {
-      filtered = filtered.filter((e) => e.type === typeFilter);
-    }
-
-    filtered.sort((a, b) => {
-      const aVal = sortBy === "timestamp" ? a.timestamp.seconds : a[sortBy];
-      const bVal = sortBy === "timestamp" ? b.timestamp.seconds : b[sortBy];
-
-      return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
-    });
-
-    return filtered;
-  }, [events, tierFilter, typeFilter, sortBy, sortOrder]);
-
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredData.slice(start, start + itemsPerPage);
-  }, [filteredData, currentPage]);
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  if (isLoading) return <div>Loading...</div>;
-
-//   useEffect(() => {
-//     const fetchData = async () => {
-//         const nodesRef = collection(db, 'nodes')
-//         const nodesSnap = await getDocs(nodesRef)
-//         const nodesList = nodesSnap.docs.map(doc=>({
-//             ...doc.data()
-//         }))
-//     };
-
-//     fetchData();
-//   }, []);
-
-
-  return (
-    <div className="min-h-screen bg-gray-50">
  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow">
           {/* Header */}
@@ -160,11 +20,30 @@ export default function HistoryPage() {
           </div>
 
           {/* Node Tabs */}
+          <div className="px-6 pt-4 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-4 overflow-x-auto">
+              {nodeTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedTab(tab.id)}
+                  className={`
+                    whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg
+                    ${
+                      selectedTab === tab.id
+                        ? "border-[#103A5E] text-[#103A5E] bg-white"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }
+                  `}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
 
           {/* Date Selection and Sorting */}
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <div className="flex flex-col sm:flex-row justify-between gap-4">
-
               {/* Date Selection */}
               <div className="flex flex-wrap gap-2">
                 <button
@@ -204,25 +83,8 @@ export default function HistoryPage() {
 
               {/* Sorting Buttons */}
               <div className="flex gap-2">
-                 <select
-                        id="nodeSelect"
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={selectedNode}
-                        onChange={(e) => setSelectedNode(e.target.value)}
-                    >
-                        <option value="node_1">Node 1</option>
-                        <option value="node_2">Node 2</option>
-                        <option value="node_3">Node 3</option>
-                        <option value="node_4">Node 4</option>
-                        <option value="node_5">Node 5</option>
-                        <option value="node_6">Node 6</option>
-                        <option value="node_7">Node 7</option>
-                        <option value="node_8">Node 8</option>
-                        <option value="node_9">Node 9</option>
-
-            </select>
                 <button
-                //   onClick={() => handleSort("timeRecorded")}
+                  onClick={() => handleSort("timeRecorded")}
                   className={`px-4 py-2 text-sm font-medium rounded-lg border flex items-center gap-2 ${
                     sortField === "timeRecorded"
                       ? "bg-[#103A5E] text-white border-[#103A5E]"
@@ -235,7 +97,7 @@ export default function HistoryPage() {
                     (sortOrder === "asc" ? "↑" : "↓")}
                 </button>
                 <button
-                //   onClick={() => handleSort("noiseAlertLevel")}
+                  onClick={() => handleSort("noiseAlertLevel")}
                   className={`px-4 py-2 text-sm font-medium rounded-lg border flex items-center gap-2 ${
                     sortField === "noiseAlertLevel"
                       ? "bg-[#103A5E] text-white border-[#103A5E]"
@@ -247,7 +109,6 @@ export default function HistoryPage() {
                   {sortField === "noiseAlertLevel" &&
                     (sortOrder === "asc" ? "↑" : "↓")}
                 </button>
-
               </div>
             </div>
           </div>
@@ -302,32 +163,32 @@ export default function HistoryPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedData?.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50">
+                {currentData.map((record: NoiseRecord, index: number) => (
+                  <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {record.node.name}
+                      {record.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {record.node.coords.lat.toFixed(6)},{" "}
-                      {record.node.coords.lng.toFixed(6)}
+                      {record.coordinates.lat.toFixed(6)},{" "}
+                      {record.coordinates.lng.toFixed(6)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {record.soundLevel} dB
+                      {record.noiseDb} dB
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {record.timestamp.toString()}
+                      {record.timeRecorded}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {/* <span
+                      <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           getNoiseLevelStyle(record.noiseAlertLevel).bg
                         } ${getNoiseLevelStyle(record.noiseAlertLevel).text}`}
                       >
                         {record.noiseAlertLevel}
-                      </span> */}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {record.tier}
+                      {record.noiseCategory}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {record.duration}
@@ -352,10 +213,10 @@ export default function HistoryPage() {
                   Previous
                 </button>
                 <button
-                //   onClick={() =>
-                //     setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                //   }
-                //   disabled={currentPage === totalPages}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
                   className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
@@ -453,7 +314,3 @@ export default function HistoryPage() {
           </div>
         </div>
       </div>
-
-    </div>
-  );
-}
