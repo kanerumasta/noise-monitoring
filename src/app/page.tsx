@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import dynamic from 'next/dynamic'
 import { ChartBarIcon } from '@heroicons/react/24/outline'
+import { onValue, ref } from "firebase/database"
+import { db, rtdb } from "@/lib/firebase"
 
 
 // Dynamically import the Map component to avoid SSR issues
@@ -11,17 +13,14 @@ const Map = dynamic(() => import('@/components/Map'), {
   loading: () => <div className="w-full h-full bg-gray-100 animate-pulse" />
 })
 
-// Types
 interface Node {
   id: number
   name: string
   lat: number
   lng: number
-  noiseLevel: string
-  noisePeak: number
-  noiseTier: number
+  soundLevel: number
+  tier:string,
   location: string
-  consecutiveIntervals: number
   timestamp: string
 }
 
@@ -71,122 +70,6 @@ const NOISE_CATEGORIES = [
   }
 ]
 
-// Node data
-const nodes = [
-  // Filter Site Nodes
-  {
-    id: 1,
-    name: "Filter Site Node 1",
-    lat: 10.303263346925576,
-    lng: 123.86329442165102,
-    noiseLevel: "Normal",
-    noisePeak: 65,
-    noiseTier: 0,
-    consecutiveIntervals: 1,
-    location: "Filter Site",
-    timestamp: "2024-02-20 08:30:00"
-  },
-  {
-    id: 2,
-    name: "Filter Site Node 2",
-    lat: 10.303218626609574,
-    lng: 123.86352089049124,
-    noiseLevel: "Tier 1",
-    noisePeak: 75,
-    noiseTier: 2,
-    consecutiveIntervals: 3,  // 15 minutes (3 x 5-min intervals)
-    location: "Filter Site",
-    timestamp: "2024-02-20 08:15:00"
-  },
-  {
-    id: 3,
-    name: "Filter Site Node 3",
-    lat: 10.303186459360795,
-    lng: 123.86374895418248,
-    noiseLevel: "Tier 3",
-    noisePeak: 120,
-    noiseTier: 3,
-    consecutiveIntervals: 3,
-    location: "Filter Site",
-    timestamp: "2024-02-20 08:45:00"
-  },
-
-  // Sitio Tahna Nodes
-  {
-    id: 4,
-    name: "Tahna Node 1",
-    lat: 10.301850119811743,
-    lng: 123.86873049466762,
-    noiseLevel: "Tier 2",
-    noisePeak: 82,
-    noiseTier: 1,
-    consecutiveIntervals: 3,
-    location: "Sitio Tahna",
-    timestamp: "2024-02-20 08:10:00"
-  },
-  {
-    id: 5,
-    name: "Tahna Node 2",
-    lat: 10.301656155473276,
-    lng: 123.86880760817512,
-    noiseLevel: "Normal",
-    noisePeak: 68,
-    noiseTier: 0,
-    consecutiveIntervals: 1,
-    location: "Sitio Tahna",
-    timestamp: "2024-02 -20 08:35:00"
-  },
-  {
-    id: 6,
-    name: "Tahna Node 3",
-    lat: 10.301447016918546,
-    lng: 123.86883375971344,
-    noiseLevel: "Tier 1",
-    noisePeak: 73,
-    noiseTier: 1,
-    consecutiveIntervals: 3,
-    location: "Sitio Tahna",
-    timestamp: "2024-02-20 08:40:00"
-  },
-
-  // Sitio San Miguel Nodes
-  {
-    id: 7,
-    name: "San Miguel Node 1",
-    lat: 10.298220500473846,
-    lng: 123.86910419812594,
-    noiseLevel: "Tier 2",
-    noisePeak: 95,
-    noiseTier: 2,
-    consecutiveIntervals: 3,
-    location: "Sitio San Miguel",
-    timestamp: "2024-02-20 08:25:00"
-  },
-  {
-    id: 8,
-    name: "San Miguel Node 2",
-    lat: 10.29812542410282,
-    lng: 123.86891288419301,
-    noiseLevel: "Tier 1",
-    noisePeak: 83,
-    noiseTier: 1,
-    consecutiveIntervals: 3,
-    location: "Sitio San Miguel",
-    timestamp: "2024-02-20 08:05:00"
-  },
-  {
-    id: 9,
-    name: "San Miguel Node 3",
-    lat: 10.298087009399318,
-    lng: 123.86868740705779,
-    noiseLevel: "Normal",
-    noisePeak: 60,
-    noiseTier: 0,
-    consecutiveIntervals: 1,
-    location: "Sitio San Miguel",
-    timestamp: "2024-02-20 08:20:00"
-  },
-]
 
 // Components
 const NoiseCategory = ({ category }: { category: typeof NOISE_CATEGORIES[0] }) => (
@@ -204,26 +87,26 @@ const NodeCard = ({
   isSelected: boolean
   onClick: () => void
 }) => {
-  const getNodeCategory = (noisePeak: number, intervals: number) => {
-    if (noisePeak > 101) {
+  const getNodeCategory = (tier:string) => {
+    if (tier === "TIER 3") {
       return {
         ...NOISE_CATEGORIES[3],
         shadowColor: 'rgba(239, 68, 68, 0.35)' // Red shadow
       }
     }
-    if (noisePeak >= 86 && noisePeak <= 100 && intervals >= 3) {
+    if (tier === "TIER 2") {
       return {
         ...NOISE_CATEGORIES[2],
         shadowColor: 'rgba(249, 115, 22, 0.35)' // Orange shadow
       }
     }
-    if (noisePeak >= 71 && noisePeak <= 85 && intervals >= 3) {
+    if (tier === "TIER 1") {
       return {
         ...NOISE_CATEGORIES[1],
         shadowColor: 'rgba(234, 179, 8, 0.35)' // Yellow shadow
       }
     }
-    if (noisePeak >= 55 && noisePeak <= 70) {
+    if (tier === "NORMAL") {
       return {
         ...NOISE_CATEGORIES[0],
         shadowColor: 'rgba(34, 197, 94, 0.35)' // Green shadow
@@ -232,7 +115,7 @@ const NodeCard = ({
     return null
   }
 
-  const category = getNodeCategory(node.noisePeak, node.consecutiveIntervals)
+  const category = getNodeCategory(node.tier)
   const timestamp = new Date(node.timestamp)
   const timeString = timestamp.toLocaleTimeString('en-US', {
     hour: 'numeric',
@@ -262,7 +145,7 @@ const NodeCard = ({
             <p className="text-sm text-gray-500">{node.location}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${category?.bgColor} ${category?.textColor}`}>
-            {node.noisePeak} dB
+            {node.soundLevel} dB
           </span>
         </div>
 
@@ -270,12 +153,9 @@ const NodeCard = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Noise Level</span>
-            <span className="font-medium">{node.noiseLevel}</span>
+            <span className="font-medium">{node.tier}</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Duration</span>
-            <span className="font-medium">{node.consecutiveIntervals * 5} minutes</span>
-          </div>
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Triggered At</span>
             <span className="font-medium">{timeString}</span>
@@ -283,7 +163,7 @@ const NodeCard = ({
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Tier</span>
             <span className={`font-medium ${category?.textColor}`}>
-              {node.noiseTier === 0 ? 'Normal' : `Level ${node.noiseTier}`}
+              {node.tier}
             </span>
           </div>
         </div>
@@ -292,9 +172,9 @@ const NodeCard = ({
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full h-12"
           style={{
-            backgroundColor: node.noisePeak > 101 ? '#EF4444' :
-                           node.noisePeak >= 86 && node.consecutiveIntervals >= 3 ? '#F97316' :
-                           node.noisePeak >= 71 && node.consecutiveIntervals >= 3 ? '#EAB308' :
+            backgroundColor: node.tier === "TIER 3" ? '#EF4444' :
+                           node.tier === "TIER 2" ? '#F97316' :
+                           node.tier === "TIER 1" ? '#EAB308' :
                            '#22C55E'
           }}
         />
@@ -309,15 +189,36 @@ export default function Dashboard() {
   const [mapZoom, setMapZoom] = useState(15)
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
   const [showAverages, setShowAverages] = useState(false)
+   const [nodes, setNodes] = useState<Node[]>([]);
+
+    useEffect(() => {
+        const nodesRef = ref(rtdb, "nodes");
+
+        const unsubscribe = onValue(nodesRef, (snapshot) => {
+        const data = snapshot.val();
+
+        if (data) {
+            console.log(data)
+            const nodeArray = Object.entries(data).map(([id, node]) => ({
+            id: Number(id),
+            ...node,
+            }));
+
+            setNodes(nodeArray);
+        }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
 
   // Calculate averages per location
   const locationAverages = nodes.reduce((acc, node) => {
     if (!acc[node.location]) {
       const locationNodes = nodes.filter(n => n.location === node.location)
       const avgNoisePeak = Math.round(
-        locationNodes.reduce((sum, n) => sum + n.noisePeak, 0) / locationNodes.length
+        locationNodes.reduce((sum, n) => sum + n.soundLevel, 0) / locationNodes.length
       )
-      const maxDuration = Math.max(...locationNodes.map(n => n.consecutiveIntervals))
       const centerNode = locationNodes[Math.floor(locationNodes.length / 2)]
 
       acc[node.location] = {
@@ -325,14 +226,7 @@ export default function Dashboard() {
         name: `${node.location} Average`,
         lat: centerNode.lat,
         lng: centerNode.lng,
-        noiseLevel: avgNoisePeak > 101 ? "Tier 3" :
-                   avgNoisePeak >= 86 && maxDuration >= 3 ? "Tier 2" :
-                   avgNoisePeak >= 86 ? "Tier 1" : "Normal",
-        noisePeak: avgNoisePeak,
-        noiseTier: avgNoisePeak > 101 ? 2 :
-                   avgNoisePeak >= 86 && maxDuration >= 3 ? 2 :
-                   avgNoisePeak >= 86 ? 1 : 0,
-        consecutiveIntervals: maxDuration,
+        tier:node.tier,
         location: node.location,
         timestamp: locationNodes[0].timestamp
       }
@@ -342,7 +236,7 @@ export default function Dashboard() {
 
   // Filter nodes based on noise level and selected location
   const filteredNodes = nodes.filter((node) => {
-    const meetsNoiseThreshold = node.noisePeak >= NOISE_THRESHOLD
+    const meetsNoiseThreshold = node.soundLevel >= NOISE_THRESHOLD
     const meetsLocationFilter = !selectedLocation || node.location === selectedLocation
     return meetsNoiseThreshold && meetsLocationFilter
   })
