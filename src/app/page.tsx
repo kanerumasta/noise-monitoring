@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { ChartBarIcon } from '@heroicons/react/24/outline'
 import { onValue, ref } from "firebase/database"
 import { db, rtdb } from "@/lib/firebase"
+import { getTierLevel } from "@/lib/helpers"
 
 
 // Dynamically import the Map component to avoid SSR issues
@@ -19,13 +20,14 @@ interface Node {
   lat: number
   lng: number
   soundLevel: number
-  tier:string,
+  tier:string
   location: string
   timestamp: string
+  battery: number
 }
 
 // Constants
-const NOISE_THRESHOLD = 55
+const NOISE_THRESHOLD = 30
 
 const NOISE_CATEGORIES = [
   {
@@ -87,26 +89,26 @@ const NodeCard = ({
   isSelected: boolean
   onClick: () => void
 }) => {
-  const getNodeCategory = (tier:string) => {
-    if (tier === "TIER 3") {
+  const getNodeCategory = (soundLevel: number) => {
+    if (soundLevel > 101) {
       return {
         ...NOISE_CATEGORIES[3],
         shadowColor: 'rgba(239, 68, 68, 0.35)' // Red shadow
       }
     }
-    if (tier === "TIER 2") {
+    if (soundLevel >= 86 && soundLevel <= 100) {
       return {
         ...NOISE_CATEGORIES[2],
         shadowColor: 'rgba(249, 115, 22, 0.35)' // Orange shadow
       }
     }
-    if (tier === "TIER 1") {
+    if (soundLevel >= 71 && soundLevel <= 85) {
       return {
         ...NOISE_CATEGORIES[1],
         shadowColor: 'rgba(234, 179, 8, 0.35)' // Yellow shadow
       }
     }
-    if (tier === "NORMAL") {
+    if (soundLevel >= 55 && soundLevel <= 70) {
       return {
         ...NOISE_CATEGORIES[0],
         shadowColor: 'rgba(34, 197, 94, 0.35)' // Green shadow
@@ -115,8 +117,14 @@ const NodeCard = ({
     return null
   }
 
-  const category = getNodeCategory(node.tier)
+  const category = getNodeCategory(node.soundLevel)
   const timestamp = new Date(node.timestamp)
+
+const dateString = timestamp.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'short', // e.g. "Jun"
+  day: 'numeric'
+});
   const timeString = timestamp.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
@@ -145,7 +153,7 @@ const NodeCard = ({
             <p className="text-sm text-gray-500">{node.location}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${category?.bgColor} ${category?.textColor}`}>
-            {node.soundLevel} dB
+            {Math.ceil(node.soundLevel)} dB
           </span>
         </div>
 
@@ -153,18 +161,23 @@ const NodeCard = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Noise Level</span>
-            <span className="font-medium">{node.tier}</span>
+            <span className="font-medium">{Math.ceil(node.soundLevel)}</span>
           </div>
 
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Triggered At</span>
-            <span className="font-medium">{timeString}</span>
+            <span className="font-medium">{dateString} {timeString}</span>
           </div>
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Tier</span>
             <span className={`font-medium ${category?.textColor}`}>
-              {node.tier}
+              {getTierLevel(node.soundLevel)}
             </span>
+          </div>
+           <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Battery Health</span>
+            <span className="font-medium">{node.battery}%</span>
           </div>
         </div>
 
@@ -172,9 +185,9 @@ const NodeCard = ({
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full h-12"
           style={{
-            backgroundColor: node.tier === "TIER 3" ? '#EF4444' :
-                           node.tier === "TIER 2" ? '#F97316' :
-                           node.tier === "TIER 1" ? '#EAB308' :
+            backgroundColor: node.soundLevel > 101 ? '#EF4444' :
+                           node.soundLevel >= 86  ? '#F97316' :
+                           node.soundLevel >= 71  ? '#EAB308' :
                            '#22C55E'
           }}
         />
@@ -198,7 +211,6 @@ export default function Dashboard() {
         const data = snapshot.val();
 
         if (data) {
-            console.log(data)
             const nodeArray = Object.entries(data).map(([id, node]) => ({
             id: Number(id),
             ...node,
@@ -226,9 +238,13 @@ export default function Dashboard() {
         name: `${node.location} Average`,
         lat: centerNode.lat,
         lng: centerNode.lng,
-        tier:node.tier,
+        tier: avgNoisePeak > 101 ? "Tier 3" :
+                   avgNoisePeak >= 86 ? "Tier 2" :
+                   avgNoisePeak >= 70 ? "Tier 1" : "Normal",
         location: node.location,
-        timestamp: locationNodes[0].timestamp
+        soundLevel:avgNoisePeak,
+        timestamp: locationNodes[0].timestamp,
+        battery:node.battery
       }
     }
     return acc
