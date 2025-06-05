@@ -82,6 +82,7 @@ export default function HistoryPage() {
     return filtered;
   }, [events, selectedTiers, selectedNoiseType, sortField, sortOrder, isTodaySelected, selectedDate]);
 
+
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedNode, selectedDate, sortField, sortOrder, selectedTiers, selectedNoiseType]);
