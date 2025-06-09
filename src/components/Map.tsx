@@ -14,21 +14,21 @@ import { Style } from 'ol/style'
 import { RenderFunction } from 'ol/style/Style'
 import { Coordinate } from 'ol/coordinate'
 import 'ol/ol.css'
+import { getTierLevel } from '@/lib/helpers'
 
 type BaseNodeType = {
   lat: number
   lng: number
-  noisePeak: number
   location: string
-  duration?: number
-  consecutiveIntervals?: number
 }
 
 type DetailedNodeType = BaseNodeType & {
   id: number
   name: string
-  noiseLevel: string
-  noiseTier: number
+  soundLevel: number
+  tier: string
+  timestamp:string
+  battery:number
 }
 
 type GroupedNodeType = BaseNodeType & {
@@ -54,52 +54,25 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
   const vectorSourceRef = useRef<VectorSource | null>(null)
   const vectorLayerRef = useRef<VectorLayer<VectorSource> | null>(null)
 
-  const getNoiseColor = (noisePeak: number, intervals?: number) => {
-    // Tier 3 (Alert Strike 3): >85 dB (immediate)
-    if (noisePeak > 101) {
+  const getNoiseColor = (soundLevel: number) => {
+    const tier = getTierLevel(soundLevel)
+    if (tier === "Tier 3") {
       return [239, 68, 68, 0.8] // #EF4444 Red
     }
     // Tier 2 (Alert Strike 2): 71-85 dB for 3 consecutive intervals (15 min)
-    if (noisePeak >= 86 && noisePeak <= 100 && intervals && intervals >= 3) {
+    if (tier === "Tier 2") {
       return [249, 115, 22, 0.75] // #F97316 Orange
     }
     // Tier 1 (Alert Strike 1): 71-85 dB first interval
-    if (noisePeak >= 71 && noisePeak <= 85 && intervals && intervals >= 1) {
+    if (tier === "Tier 1") {
       return [234, 179, 8, 0.7] // #EAB308 Yellow
     }
     // Normal (55-70 dB)
-    if (noisePeak >= 55 && noisePeak <= 70) {
+    if (tier === "Normal") {
       return [34, 197, 94, 0.65] // #22C55E Green
     }
     // Below threshold
     return [128, 128, 128, 0.5] // Gray for below threshold
-  }
-
-  const groupNodesByLocation = () => {
-    const groups: Record<string, GroupedNodeType> = {}
-    
-    nodes.forEach(node => {
-      if (!(node.location in groups)) {
-        const locationNodes = nodes.filter(n => n.location === node.location)
-        const avgNoisePeak = Math.round(
-          locationNodes.reduce((acc, n) => acc + n.noisePeak, 0) / locationNodes.length
-        )
-        const maxDuration = Math.max(
-          ...locationNodes.map(n => n.duration || 0)
-        )
-        const centerNode = locationNodes[Math.floor(locationNodes.length / 2)]
-        
-        groups[node.location] = {
-          location: node.location,
-          lat: centerNode.lat,
-          lng: centerNode.lng,
-          noisePeak: avgNoisePeak,
-          duration: maxDuration,
-          count: locationNodes.length
-        }
-      }
-    })
-    return Object.values(groups)
   }
 
   // Calculate accurate 15-meter radius in pixels
@@ -109,17 +82,17 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
 
     const projection = view.getProjection()
     const metersPerUnit = projection.getMetersPerUnit() || 1
-    
+
     // Convert 15 meters to map units (EPSG:3857 uses meters)
     const radius = 15 / metersPerUnit
-    
+
     // Scale radius based on resolution to maintain constant ground size
     const pointResolution = getPointResolution(
       projection,
       resolution,
       coordinates
     )
-    
+
     return radius / pointResolution
   }
 
@@ -130,8 +103,10 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
         properties: node
       })
 
-      const color = getNoiseColor(node.noisePeak, node.consecutiveIntervals)
+      const color = getNoiseColor(node.soundLevel)
       const isSelected = selectedNode && node.id === selectedNode.id
+
+
 
       const renderFunction: RenderFunction = (coords, state) => {
         if (!coords || !Array.isArray(coords) || coords.length < 2) return
@@ -169,12 +144,13 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
         // Dynamic text sizing based on zoom level
         const zoomFactor = Math.max(0.5, Math.min(currentZoom / 15, 1.2))
         const fontSize = Math.max(12, Math.min(14 * zoomFactor, 16))
-        ctx.font = `600 ${fontSize}px 'Inter', system-ui, -apple-system, sans-serif`
+        ctx.font = `600 ${fontSize+1}px 'Inter', system-ui, -apple-system, sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
+        const zoomLevel = mapInstanceRef.current?.getView().getZoom()
 
         // Show noise level
-        const text = `${node.noisePeak} dB`
+        const text = `${Math.ceil(node.soundLevel)} dB`
 
         // Add subtle shadow for depth
         ctx.save()
@@ -189,9 +165,22 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
         ctx.lineJoin = 'round'
         ctx.strokeText(text, Number(x), Number(y))
 
+
         // Text fill with black color
         ctx.fillStyle = '#000000'
         ctx.fillText(text, Number(x), Number(y))
+
+        ctx.save()
+        if(zoomLevel && zoomLevel > 18){
+
+        ctx.fillStyle = "rgb(12, 36, 61)"
+        ctx.font = `600 ${zoomLevel > 19 ? fontSize + 1 : fontSize-4}px 'Inter', system-ui, -apple-system, sans-serif`
+        if(node.id % 2 === 0)
+            ctx.fillText(node.name, Number(x), Number(y) + 16)
+        else
+            ctx.fillText(node.name, Number(x), Number(y)  - 16)
+        }
+
 
         ctx.restore()
 
@@ -224,7 +213,7 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
       const googleMapsLayer = new TileLayer({
         source: new XYZ({
           url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-          maxZoom: 19,
+          maxZoom: 21,
           attributions: '© Google Maps'
         })
       })
@@ -235,8 +224,8 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
         view: new View({
           center: fromLonLat([center[1], center[0]]),
           zoom: zoom,
-          minZoom: 10,
-          maxZoom: 19,
+          minZoom: 15,
+          maxZoom: 21,
           constrainResolution: true
         })
       })
@@ -257,7 +246,7 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
           const props = feature.getProperties().properties as DetailedNodeType
           const view = mapInstanceRef.current.getView()
           const coordinates = fromLonLat([props.lng, props.lat])
-          
+
           view.animate({
             center: coordinates,
             duration: 1000
@@ -283,7 +272,7 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
         })
       }
     }
-    
+
     previousSelectedNode.current = selectedNode
 
     return () => {
@@ -335,4 +324,4 @@ const MapComponent = ({ nodes, selectedNode, center, zoom }: MapProps) => {
   )
 }
 
-export default MapComponent 
+export default MapComponent

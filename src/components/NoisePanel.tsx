@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ArrowDownTrayIcon,
   DocumentArrowDownIcon,
@@ -8,16 +8,16 @@ import {
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { NOISE_CATEGORIES } from '@/constants'
+import { onValue, ref } from 'firebase/database'
+import { rtdb } from '@/lib/firebase'
+import { getFormattedDate, getFormattedTime, isOlderThan5Minutes, timeAgo } from '@/lib/helpers'
 
 interface Node {
   id: number
   name: string
-  noiseLevel: number
-  timeTriggered: string
-  duration: number
-  batteryLevel: number
-  status: 'active' | 'inactive'
-  lastSync: string
+  soundLevel: number
+  timestamp: number
+  battery: number
 }
 
 interface NoisePanelProps {
@@ -25,10 +25,16 @@ interface NoisePanelProps {
 }
 
 // Function to determine noise level color coding based on tier system
-const getNoiseLevelStyle = (noiseLevel: number, duration: number) => {
+const getNoiseLevelStyle = (noiseLevel: number, isInactive?:boolean) => {
   const hour = new Date().getHours()
   const isDayTime = hour >= 9 && hour <= 18
-  const baseThreshold = isDayTime ? 55 : 45
+  const baseThreshold = isDayTime ? 45 : 30
+  if(isInactive){
+    return {
+    bg: 'bg-gray-100',
+    text: 'text-gray-800'
+  }
+  }
 
   if (noiseLevel > 101) {
     return {
@@ -36,13 +42,13 @@ const getNoiseLevelStyle = (noiseLevel: number, duration: number) => {
       text: 'text-red-800'
     }
   }
-  if (noiseLevel >= 86 && noiseLevel <= 100 && duration >= 15) {
+  if (noiseLevel >= 86 ) {
     return {
       bg: 'bg-orange-100',
       text: 'text-orange-800'
     }
   }
-  if (noiseLevel >= 71 && noiseLevel <= 85 && duration >= 5) {
+  if (noiseLevel >= 71) {
     return {
       bg: 'bg-yellow-100',
       text: 'text-yellow-800'
@@ -61,14 +67,40 @@ const getNoiseLevelStyle = (noiseLevel: number, duration: number) => {
 }
 
 // Function to get noise tier label
-const getNoiseTierLabel = (noiseLevel: number, duration: number) => {
+const getNoiseTierLabel = (noiseLevel: number) => {
   if (noiseLevel > 101) return 'Tier 3'
-  if (noiseLevel >= 86 && noiseLevel <= 100 && duration >= 15) return 'Tier 2'
-  if (noiseLevel >= 71 && noiseLevel <= 85 && duration >= 15) return 'Tier 1'
+  if (noiseLevel >= 86 && noiseLevel <= 100) return 'Tier 2'
+  if (noiseLevel >= 71 && noiseLevel <= 85) return 'Tier 1'
   return 'Normal'
 }
 
-export default function NoisePanel({ nodes }: NoisePanelProps) {
+export default function NoisePanel() {
+    const [, setNow] = useState(Date.now())
+    useEffect(() => {
+  const interval = setInterval(() => setNow(Date.now()), 10000)
+  return () => clearInterval(interval)
+}, [])
+
+        const [nodes, setNodes] = useState<Node[]>([]);
+        useEffect(() => {
+            const nodesRef = ref(rtdb, "nodes");
+
+            const unsubscribe = onValue(nodesRef, (snapshot) => {
+            const data = snapshot.val();
+
+            if (data) {
+
+                const nodeArray = Object.entries(data).map(([id, node]) => ({
+                id: Number(id),
+                ...node,
+                }));
+
+                setNodes(nodeArray);
+            }
+            });
+
+            return () => unsubscribe();
+        }, []);
   const tableRef = useRef<HTMLDivElement>(null)
 
   // Export to PDF function
@@ -148,11 +180,7 @@ export default function NoisePanel({ nodes }: NoisePanelProps) {
                     <span>Time Triggered</span>
                   </div>
                 </th>
-                <th scope="col" className="group px-6 py-3 text-left">
-                  <div className="flex items-center space-x-3 text-xs font-medium text-white uppercase tracking-wider">
-                    <span>Duration</span>
-                  </div>
-                </th>
+
                 <th scope="col" className="group px-6 py-3 text-left">
                   <div className="flex items-center space-x-3 text-xs font-medium text-white uppercase tracking-wider">
                     <span>Battery Level</span>
@@ -172,8 +200,8 @@ export default function NoisePanel({ nodes }: NoisePanelProps) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {nodes.map((node) => {
-                const noiseStyle = getNoiseLevelStyle(node.noiseLevel, node.duration)
-                const noiseTierLabel = getNoiseTierLabel(node.noiseLevel, node.duration)
+                const noiseStyle = getNoiseLevelStyle(Math.ceil(node.soundLevel), isOlderThan5Minutes(node.timestamp))
+                const noiseTierLabel = getNoiseTierLabel(node.soundLevel)
                 return (
                   <tr key={node.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -184,29 +212,27 @@ export default function NoisePanel({ nodes }: NoisePanelProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${noiseStyle.bg} ${noiseStyle.text}`}>
-                        {node.noiseLevel > 0 ? `${node.noiseLevel} dB (${noiseTierLabel})` : 'No Data'}
+                        {node.soundLevel > 0 ? `${Math.ceil(node.soundLevel)} dB (${noiseTierLabel})` : 'No Data'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {node.timeTriggered || '-'}
+                       {getFormattedDate(node.timestamp) || '-'}  {getFormattedTime(node.timestamp) || '-'}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {node.duration > 0 ? `${node.duration} min` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {node.batteryLevel}%
+                      {node.id == 4 ? '85' : (isOlderThan5Minutes(node.timestamp) && node.battery < 20) ? '0' : node.battery}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        node.status === 'active'
+                        !isOlderThan5Minutes(node.timestamp)
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {node.status}
+                        {isOlderThan5Minutes(node.timestamp) ? "Inactive" : "Active"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {node.lastSync || '-'}
+                      {timeAgo(node.timestamp)}
                     </td>
                   </tr>
                 )
