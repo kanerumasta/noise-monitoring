@@ -14,7 +14,7 @@ export const fetchEvents = async (selectedNode: string): Promise<TNoiseRecordWit
       const nodeId = nodeDoc.id;
       const nodeData = nodeDoc.data() as TNode;
 
-      const eventsSnap = await getDocs(collection(db, `nodes/${nodeId}/events`));
+      const eventsSnap = await getDocs(collection(db, `history/${nodeId}/events`));
       events.push(
         ...eventsSnap.docs.map((eventDoc) => ({
           ...(eventDoc.data() as TNoiseRecord),
@@ -28,7 +28,7 @@ export const fetchEvents = async (selectedNode: string): Promise<TNoiseRecordWit
     if (!nodeSnap.exists()) throw new Error("Node not found");
     const nodeData = nodeSnap.data() as TNode;
 
-    const eventsSnap = await getDocs(collection(db, `nodes/${selectedNode}/events`));
+    const eventsSnap = await getDocs(collection(db, `history/${selectedNode}/events`));
     events.push(
       ...eventsSnap.docs.map((eventDoc) => ({
         ...(eventDoc.data() as TNoiseRecord),

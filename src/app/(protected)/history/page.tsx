@@ -12,6 +12,7 @@ import NoiseTypeFilter from './components/NoiseTypeFilter';
 import TierFilter from './components/TierFilter';
 import { CalendarIcon } from "@heroicons/react/24/outline";
 import DateSelection from "./components/DateSelectionFilter";
+import { getTierLevel } from "@/lib/helpers";
 
 export default function HistoryPage() {
   const [selectedNode, setSelectedNode] = useState("all");
@@ -50,7 +51,7 @@ export default function HistoryPage() {
       );
     }
 
-    filtered = filtered.filter(item => selectedTiers.length === 0 || selectedTiers.includes(item.tier));
+    filtered = filtered.filter(item => selectedTiers.length === 0 || selectedTiers.includes(getTierLevel(item.soundLevel)));
 
     if (selectedNoiseType) {
       filtered = filtered.filter((e) => e.type === selectedNoiseType);
@@ -81,7 +82,6 @@ export default function HistoryPage() {
 
     return filtered;
   }, [events, selectedTiers, selectedNoiseType, sortField, sortOrder, isTodaySelected, selectedDate]);
-
 
   useEffect(() => {
     setCurrentPage(1);

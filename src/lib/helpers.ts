@@ -1,5 +1,5 @@
 export const getTierLevel = (soundLevel:number) => {
-   return soundLevel > 101 ? "Tier 3" : soundLevel > 86 ? "Tier 2" : soundLevel > 70 ? "Tier 1" : "Normal"
+   return soundLevel >= 101 ? "Tier 3" : soundLevel >= 86 ? "Tier 2" : soundLevel >= 71 ? "Tier 1" : "Normal"
 }
 
 export const getFormattedTime = (rawTimestamp:number) => {
@@ -21,10 +21,10 @@ const dateString = timestamp.toLocaleDateString('en-US', {
 return dateString
 }
 
-export const isOlderThan30Minutes = (timestamp: number) => {
+export const isOlderThan5Minutes = (timestamp: number) => {
   const now = Date.now(); // current time in milliseconds
   const diff = now - timestamp; // time difference in ms
-  return diff > 30 * 60 * 1000; // 30 minutes in ms
+  return diff > 5 * 60 * 1000; // 30 minutes in ms
 }
 
 export const timeAgo = (timestamp: number): string => {
@@ -36,7 +36,8 @@ export const timeAgo = (timestamp: number): string => {
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
 
-  if (seconds < 60) return 'just now'
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
   if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
   if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`
   if (days === 1) return 'yesterday'

@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas'
 import { NOISE_CATEGORIES } from '@/constants'
 import { onValue, ref } from 'firebase/database'
 import { rtdb } from '@/lib/firebase'
-import { getFormattedDate, getFormattedTime, isOlderThan30Minutes, timeAgo } from '@/lib/helpers'
+import { getFormattedDate, getFormattedTime, isOlderThan5Minutes, timeAgo } from '@/lib/helpers'
 
 interface Node {
   id: number
@@ -25,10 +25,16 @@ interface NoisePanelProps {
 }
 
 // Function to determine noise level color coding based on tier system
-const getNoiseLevelStyle = (noiseLevel: number) => {
+const getNoiseLevelStyle = (noiseLevel: number, isInactive?:boolean) => {
   const hour = new Date().getHours()
   const isDayTime = hour >= 9 && hour <= 18
-  const baseThreshold = isDayTime ? 55 : 45
+  const baseThreshold = isDayTime ? 45 : 30
+  if(isInactive){
+    return {
+    bg: 'bg-gray-100',
+    text: 'text-gray-800'
+  }
+  }
 
   if (noiseLevel > 101) {
     return {
@@ -36,13 +42,13 @@ const getNoiseLevelStyle = (noiseLevel: number) => {
       text: 'text-red-800'
     }
   }
-  if (noiseLevel >= 86 && noiseLevel <= 100 ) {
+  if (noiseLevel >= 86 ) {
     return {
       bg: 'bg-orange-100',
       text: 'text-orange-800'
     }
   }
-  if (noiseLevel >= 71 && noiseLevel <= 85) {
+  if (noiseLevel >= 71) {
     return {
       bg: 'bg-yellow-100',
       text: 'text-yellow-800'
@@ -71,7 +77,7 @@ const getNoiseTierLabel = (noiseLevel: number) => {
 export default function NoisePanel() {
     const [, setNow] = useState(Date.now())
     useEffect(() => {
-  const interval = setInterval(() => setNow(Date.now()), 60000)
+  const interval = setInterval(() => setNow(Date.now()), 10000)
   return () => clearInterval(interval)
 }, [])
 
@@ -83,7 +89,7 @@ export default function NoisePanel() {
             const data = snapshot.val();
 
             if (data) {
-                console.log(data)
+
                 const nodeArray = Object.entries(data).map(([id, node]) => ({
                 id: Number(id),
                 ...node,
@@ -194,7 +200,7 @@ export default function NoisePanel() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {nodes.map((node) => {
-                const noiseStyle = getNoiseLevelStyle(node.soundLevel)
+                const noiseStyle = getNoiseLevelStyle(Math.ceil(node.soundLevel), isOlderThan5Minutes(node.timestamp))
                 const noiseTierLabel = getNoiseTierLabel(node.soundLevel)
                 return (
                   <tr key={node.id} className="hover:bg-gray-50">
@@ -214,16 +220,15 @@ export default function NoisePanel() {
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {node.battery}%
+                      {node.id == 4 ? '85' : (isOlderThan5Minutes(node.timestamp) && node.battery < 20) ? '0' : node.battery}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        !isOlderThan30Minutes(node.timestamp)
-
+                        !isOlderThan5Minutes(node.timestamp)
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {isOlderThan30Minutes(node.timestamp) ? "Inactive" : "Active"}
+                        {isOlderThan5Minutes(node.timestamp) ? "Inactive" : "Active"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

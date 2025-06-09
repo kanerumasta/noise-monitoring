@@ -2,6 +2,7 @@ import { TNoiseRecordWithNode } from '@/schemas/node_schemas'
 import React from 'react'
 import { formatDuration, getNoiseLevelStyle } from '../helpers'
 import { format } from 'date-fns';
+import { getTierLevel } from '@/lib/helpers';
 
 interface HistoryTableProps {
     data: TNoiseRecordWithNode[],
@@ -50,12 +51,7 @@ export const HistoryTable = ({data, isLoading}:HistoryTableProps) => {
                   >
                     Noise Alert Level
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
-                  >
-                    Noise Category
-                  </th>
+
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
@@ -84,7 +80,7 @@ export const HistoryTable = ({data, isLoading}:HistoryTableProps) => {
                       {record.node.coords.lng.toFixed(6)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {record.soundLevel} dB
+                      {Math.ceil(record.soundLevel)} dB
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {record.timestamp && format(record.timestamp.toDate(), 'MMM dd, yyyy hh:mm:ss a')}
@@ -92,15 +88,13 @@ export const HistoryTable = ({data, isLoading}:HistoryTableProps) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          getNoiseLevelStyle(record.tier).bg
-                        } ${getNoiseLevelStyle(record.tier).text}`}
+                          getNoiseLevelStyle(getTierLevel(record.soundLevel)).bg
+                        } ${getNoiseLevelStyle(getTierLevel(record.soundLevel)).text}`}
                       >
-                        {record.tier}
+                        {getTierLevel(record.soundLevel)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {record.tier}
-                    </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDuration(record.duration)}
                     </td>

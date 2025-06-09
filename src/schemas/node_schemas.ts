@@ -11,7 +11,6 @@ export type TNode = {
 
 export type TNoiseRecord = {
     id: string;
-    tier: "NORMAL" | "TIER 1" | "TIER 2" | "TIER 3";
     soundLevel: number;
     duration: number;
     timestamp: Timestamp;

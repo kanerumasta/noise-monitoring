@@ -7,10 +7,10 @@ interface TierFilterProps {
 }
 
 const tierOptions = [
-  { value: 'NORMAL', label: 'NORMAL' },
-  { value: 'TIER 1', label: 'TIER 1' },
-  { value: 'TIER 2', label: 'TIER 2' },
-  { value: 'TIER 3', label: 'TIER 3' },
+  { value: 'Normal', label: 'Normal' },
+  { value: 'Tier 1', label: 'Tier 1' },
+  { value: 'Tier 2', label: 'Tier 2' },
+  { value: 'Tier 3', label: 'Tier 3' },
 ];
 
 const TierFilter = ({ selectedTiers, setSelectedTiers }: TierFilterProps) => {
@@ -29,7 +29,7 @@ const TierFilter = ({ selectedTiers, setSelectedTiers }: TierFilterProps) => {
         options={tierOptions}
         isMulti
         value={tierOptions.filter(option => selectedTiers.includes(option.value))}
-        onChange={handleChange} 
+        onChange={handleChange}
         className="w-60"
         placeholder="Select tiers..."
       />

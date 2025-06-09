@@ -20,13 +20,16 @@ const DateSelection = ({
   setShowDatePicker,
 }: DateSelectionProps) => {
   const handleTodayClick = () => {
-    setIsTodaySelected(!isTodaySelected);
-    if (isTodaySelected) {
-      setSelectedDate(new Date()); // Select today's date
-    } else {
-      setSelectedDate(null); // Deselect the date (reset)
-    }
-  };
+  const newTodayState = !isTodaySelected;
+  setIsTodaySelected(newTodayState);
+
+  if (newTodayState) {
+    setSelectedDate(new Date()); // set today's date
+  } else {
+    setSelectedDate(null); // clear selection
+  }
+};
+
 
   const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsTodaySelected(false); // Disable "Today" selection if custom date is chosen
