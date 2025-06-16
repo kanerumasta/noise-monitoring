@@ -1,16 +1,16 @@
 // src/hooks/useNotifications.ts
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   collectionGroup,
   onSnapshot,
   query,
   orderBy,
-  Timestamp
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 type Notification = {
-    id:string,
+  id: string;
   eventId: string;
   isRead: boolean;
   message: string;
@@ -26,23 +26,22 @@ export function useNotifications() {
 
   useEffect(() => {
     const q = query(
-      collectionGroup(db, 'notifications'),
-
+      collectionGroup(db, "notifications"),
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data: Notification[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            })) as Notification[];
+      const data: Notification[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Notification[];
 
-    setNotifications(data);
+      setNotifications(data);
     });
 
     return () => unsubscribe();
   }, []);
 
-  console.log('RUn')
-  console.log(notifications)
+  console.log("RUn");
+  console.log(notifications);
   return notifications;
 }

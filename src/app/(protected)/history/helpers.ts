@@ -23,8 +23,7 @@ export const getNoiseLevelStyle = (noiseLevel: string) => {
 };
 
 
-export const formatDuration = (milliseconds: number) => {
-    const seconds = milliseconds / 1000
+export const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = Math.ceil(seconds % 60);

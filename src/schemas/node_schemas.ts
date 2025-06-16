@@ -1,11 +1,8 @@
-import { QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
+import { QueryDocumentSnapshot, Timestamp, GeoPoint } from "firebase/firestore";
 
 export type TNode = {
     id:string
-    coords : {
-        lat:number,
-        lng:number
-    },
+    coords : GeoPoint
     name:string
 }
 

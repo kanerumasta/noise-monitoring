@@ -7,11 +7,16 @@ import {
   ChartBarIcon as NodesIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline'
+import { 
+  ChartPieIcon as AnalyticsIcon 
+} from '@heroicons/react/24/outline'
+
 
 const menuItems = [
-  { name: 'Dashboard', icon: DashboardIcon, path: '/' },
+  { name: 'Dashboard', icon: DashboardIcon, path: '/dashboard' },
   { name: 'Nodes', icon: NodesIcon, path: '/nodes' },
   { name: 'History', icon: ClockIcon, path: '/history' },
+  { name: 'Analytics', icon: AnalyticsIcon, path: '/analytics' },
 ]
 
 const Sidebar = () => {
@@ -20,7 +25,8 @@ const Sidebar = () => {
   return (
     <div className="w-24 bg-[#103A5E] min-h-screen text-white flex flex-col items-center py-4">
       {menuItems.map((item) => {
-        const isActive = pathname === item.path
+        const isActive = pathname === item.path || 
+                        (item.path === '/dashboard' && pathname === '/');
         return (
           <Link
             key={item.name}

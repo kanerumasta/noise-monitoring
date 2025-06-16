@@ -1,15 +1,15 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { format, subDays } from "date-fns";
-import { useQuery } from '@tanstack/react-query';
-import { fetchEvents } from '@/lib/queries/fetchEvents';
-import { TNode } from '@/schemas/node_schemas';
-import HistoryTable from './components/HistoryTable';
-import NodeSelector from './components/NodeSelector';
-import SortOptions from './components/SortOptions';
-import Paginator from './components/Paginator';
-import NoiseTypeFilter from './components/NoiseTypeFilter';
-import TierFilter from './components/TierFilter';
+import { useQuery } from "@tanstack/react-query";
+import { fetchEvents } from "@/lib/queries/fetchEvents";
+import { TNode } from "@/schemas/node_schemas";
+import HistoryTable from "./components/HistoryTable";
+import NodeSelector from "./components/NodeSelector";
+import SortOptions from "./components/SortOptions";
+import Paginator from "./components/Paginator";
+import NoiseTypeFilter from "./components/NoiseTypeFilter";
+import TierFilter from "./components/TierFilter";
 import { CalendarIcon } from "@heroicons/react/24/outline";
 import DateSelection from "./components/DateSelectionFilter";
 import { getTierLevel } from "@/lib/helpers";
@@ -19,7 +19,9 @@ export default function HistoryPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isTodaySelected, setIsTodaySelected] = useState<boolean>(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [sortField, setSortField] = useState<"timestamp" | "soundLevel" | "duration" | "nodes">("nodes");
+  const [sortField, setSortField] = useState<
+    "timestamp" | "soundLevel" | "duration" | "nodes"
+  >("timestamp");
   const [selectedTiers, setSelectedTiers] = useState<string[]>([]);
   const [selectedNoiseType, setSelectedNoiseType] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -35,6 +37,7 @@ export default function HistoryPage() {
     queryKey: ["events", selectedNode],
     queryFn: () => fetchEvents(selectedNode),
   });
+  console.log(events);
 
   const filteredData = useMemo(() => {
     if (!events) return [];
@@ -43,15 +46,23 @@ export default function HistoryPage() {
 
     if (isTodaySelected) {
       filtered = filtered.filter(
-        (event) => format(event.timestamp.seconds * 1000, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+        (event) =>
+          format(event.timestamp.seconds * 1000, "yyyy-MM-dd") ===
+          format(new Date(), "yyyy-MM-dd")
       );
-    } else if(selectedDate) {
+    } else if (selectedDate) {
       filtered = filtered.filter(
-        (event) => format(event.timestamp.seconds * 1000, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
+        (event) =>
+          format(event.timestamp.seconds * 1000, "yyyy-MM-dd") ===
+          format(selectedDate, "yyyy-MM-dd")
       );
     }
 
-    filtered = filtered.filter(item => selectedTiers.length === 0 || selectedTiers.includes(getTierLevel(item.soundLevel)));
+    filtered = filtered.filter(
+      (item) =>
+        selectedTiers.length === 0 ||
+        selectedTiers.includes(getTierLevel(item.soundLevel))
+    );
 
     if (selectedNoiseType) {
       filtered = filtered.filter((e) => e.type === selectedNoiseType);
@@ -64,28 +75,45 @@ export default function HistoryPage() {
         aVal = a.timestamp.seconds;
         bVal = b.timestamp.seconds;
       } else if (sortField === "nodes") {
-        aVal = a.node ? a.node.name : '';
-        bVal = b.node ? b.node.name : '';
+        aVal = a.node ? a.node.name : "";
+        bVal = b.node ? b.node.name : "";
       } else {
         aVal = a[sortField];
         bVal = b[sortField];
       }
 
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
+      if (typeof aVal === "number" && typeof bVal === "number") {
         return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
-      } else if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      } else if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortOrder === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
       }
 
       return 0;
     });
 
     return filtered;
-  }, [events, selectedTiers, selectedNoiseType, sortField, sortOrder, isTodaySelected, selectedDate]);
+  }, [
+    events,
+    selectedTiers,
+    selectedNoiseType,
+    sortField,
+    sortOrder,
+    isTodaySelected,
+    selectedDate,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedNode, selectedDate, sortField, sortOrder, selectedTiers, selectedNoiseType]);
+  }, [
+    selectedNode,
+    selectedDate,
+    sortField,
+    sortOrder,
+    selectedTiers,
+    selectedNoiseType,
+  ]);
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -99,7 +127,9 @@ export default function HistoryPage() {
           {/* Header */}
           <div className="px-6 py-5 border-b border-gray-200">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-[#103A5E]">Alert History</h2>
+              <h2 className="text-2xl font-bold text-[#103A5E]">
+                Alert History
+              </h2>
             </div>
           </div>
 
@@ -117,21 +147,43 @@ export default function HistoryPage() {
               />
               {/* Filters */}
               <div className="flex gap-2">
-                <NodeSelector selectedNode={selectedNode} setSelectedNode={setSelectedNode} />
-                <SortOptions sortField={sortField} setSortField={setSortField} sortOrder={sortOrder} setSortOrder={setSortOrder} />
-                <TierFilter selectedTiers={selectedTiers} setSelectedTiers={setSelectedTiers} />
-                <NoiseTypeFilter selectedNoiseType={selectedNoiseType} setSelectedNoiseType={setSelectedNoiseType} />
+                <NodeSelector
+                  selectedNode={selectedNode}
+                  setSelectedNode={setSelectedNode}
+                />
+                <SortOptions
+                  sortField={sortField}
+                  setSortField={setSortField}
+                  sortOrder={sortOrder}
+                  setSortOrder={setSortOrder}
+                />
+                <TierFilter
+                  selectedTiers={selectedTiers}
+                  setSelectedTiers={setSelectedTiers}
+                />
+                <NoiseTypeFilter
+                  selectedNoiseType={selectedNoiseType}
+                  setSelectedNoiseType={setSelectedNoiseType}
+                />
               </div>
             </div>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
-            {paginatedData && <HistoryTable data={paginatedData} isLoading={isLoading} />}
+            {paginatedData && (
+              <HistoryTable data={paginatedData} isLoading={isLoading} />
+            )}
           </div>
 
           {/* Paginator */}
-          <Paginator currentPage={currentPage} setCurrentPage={setCurrentPage} dataCount={filteredData.length} itemsPerPage={itemsPerPage} setItemsPerPage={setItemsPerPage} />
+          <Paginator
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            dataCount={filteredData.length}
+            itemsPerPage={itemsPerPage}
+            setItemsPerPage={setItemsPerPage}
+          />
         </div>
       </div>
     </div>

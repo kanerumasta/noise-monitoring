@@ -40,10 +40,10 @@ const createNotification = async (
       return;
     }
      // 🔍 Fetch the node to get its name (sitename)
-    const nodeRef = doc(db, 'nodes', nodeId);
+    const nodeRef = doc(db, 'history', nodeId);
     const nodeSnap = await getDoc(nodeRef);
 
-    let sitename = 'Unknown Site';
+    let sitename = nodeId;
     if (nodeSnap.exists()) {
       const nodeData = nodeSnap.data();
       sitename = nodeData.name || sitename;

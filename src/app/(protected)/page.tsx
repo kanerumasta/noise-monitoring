@@ -196,7 +196,7 @@ const dateString = timestamp.toLocaleDateString('en-US', {
   )
 }
 
-export default function Dashboard() {
+export default function MainPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [mapCenter, setMapCenter] = useState<[number, number]>([10.301, 123.867])
   const [mapZoom, setMapZoom] = useState(15)
@@ -379,6 +379,7 @@ export default function Dashboard() {
           selectedNode={selectedNode}
           center={mapCenter}
           zoom={mapZoom}
+          onMapClick={() => setSelectedNode(null)}
         />
       </div>
     </div>

@@ -65,7 +65,6 @@ const DateSelection = ({
           <input
             type="date"
             value={selectedDate ? format(selectedDate, "yyyy-MM-dd") : ""}
-            min={format(subDays(new Date(), 6), "yyyy-MM-dd")}
             max={format(new Date(), "yyyy-MM-dd")}
             onChange={handleCustomDateChange}
             className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
